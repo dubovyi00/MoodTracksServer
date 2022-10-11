@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from datetime import datetime as dt, timezone
 import time
-import ephem
 
 app = Flask(__name__)
 

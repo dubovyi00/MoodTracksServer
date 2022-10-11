@@ -1,6 +1,12 @@
 # Описание
 REST API для приложения Mood Tracks
 
+# Требования
+* Flask>=2.x
+
+# Запуск
+* python3 main.py
+
 # Спецификация
 ## Работа с плейлистами
 Under construction
