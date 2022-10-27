@@ -1,0 +1,39 @@
+{'type': 'mood', 'tag': 'aggressive'}
+---------------
+{'type': 'mood', 'tag': 'spring'}
+---------------
+{'type': 'mood', 'tag': 'sad'}
+---------------
+{'type': 'mood', 'tag': 'rainy'}
+---------------
+{'type': 'mood', 'tag': 'winter'}
+---------------
+{'type': 'mood', 'tag': 'kvn'}
+---------------
+{'type': 'mood', 'tag': 'beautiful'}
+---------------
+{'type': 'mood', 'tag': 'cool'}
+---------------
+{'type': 'mood', 'tag': 'summer'}
+---------------
+{'type': 'mood', 'tag': 'dream'}
+---------------
+{'type': 'mood', 'tag': 'haunting'}
+---------------
+{'type': 'mood', 'tag': 'dark'}
+---------------
+{'type': 'mood', 'tag': 'newyear'}
+---------------
+{'type': 'mood', 'tag': 'autumn'}
+---------------
+{'type': 'mood', 'tag': 'happy'}
+---------------
+{'type': 'mood', 'tag': 'relaxed'}
+---------------
+{'type': 'mood', 'tag': 'sentimental'}
+---------------
+{'type': 'mood', 'tag': 'calm'}
+---------------
+{'type': 'mood', 'tag': 'energetic'}
+---------------
+{'type': 'mood', 'tag': 'epic'}

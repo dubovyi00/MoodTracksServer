@@ -1,0 +1,13 @@
+{
+    "timeclock": {
+        "Night": "activity:fall-asleep",
+        "EarlyMorning": "activity:wake-up",
+        "LateMorning": "mood:happy",
+        "Midday": "mood:energetic",
+        "Afternoon": "mood:happy",
+        "LateAfternoon": "mood:energetic",
+        "EarlyEvening": "mood:beautiful",
+        "Evening": "mood:dreamy",
+        "LateEvening": "mood:calm"
+    }
+}

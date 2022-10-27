@@ -1,8 +1,13 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
+from yandex_music import Client
 from datetime import datetime as dt, timezone
 import time
+import json
+from operator import itemgetter
 
 app = Flask(__name__)
+ym = Client("y0_AgAAAAAmuxbHAAG8XgAAAADPAh7kUcBPun1yTdCmZ5c5KEfAUdVHzsg")
+ym.init()
 
 TIMECLOCK = {
     "Night": [0, 6],
@@ -17,22 +22,84 @@ TIMECLOCK = {
 }
 
 
-@app.route("/playlist", methods=["GET", "POST"])
-def playlist():
-    pass
+@app.route("/api/playlist", methods=["GET", "POST"])
+@app.route("/api/playlist/<int:id>", methods=["GET", "DELETE"])
+def playlist(id=0):
+    if id:
+        if request.method == "DELETE":
+            pass
+        else:
+            pass
+    else:
+        if request.method == "POST":
+            key = request.json["key"]
+            data = request.json["data"]
+            
+            with open("map.json") as f:
+                mood_map = json.loads(f.read())
+
+            station = mood_map[key][data] 
+            tracks = ym.rotor_station_tracks(station)
+            playlist = []
+            for tr in tracks["sequence"]:
+                print(tr['track'])
+                track_id = int(tr['track']['id'])
+                album_id = tr['track']['albums'][0]['id']
+                artist = ', '.join([ artist["name"] for artist in tr['track']['artists'] ])
+                album = tr['track']['albums'][0]['title']
+                title = tr['track']['title']
+                duration = int(tr['track']['duration_ms'] / 1000)
+                image_url = tr['track']['cover_uri']
+                playlist.append({
+                    "track_id": track_id,
+                    "album_id": album_id,
+                    "artist": artist,
+                    "album": album,
+                    "title": title,
+                    "duration": duration,
+                    "image_url": image_url
+                })
+
+            return {"tracks": playlist} # временно
+
+        else:
+            pass
 
 
-@app.route("/weather", methods=["GET"])
+@app.route("/api/track/<int:album_id>/<int:track_id>")
+def track(album_id, track_id):
+    tr = f"{track_id}:{album_id}"
+    try:
+        downloads = ym.tracks_download_info(tr)
+        downloads.sort(key=itemgetter('bitrate_in_kbps'), reverse=True)
+        best_quality = downloads[0]
+        fname = tr.replace(':', '.') + '.' + best_quality['codec']
+        ym.tracks([tr])[0].download(
+            fname,
+            best_quality['codec'],
+            best_quality['bitrate_in_kbps']
+        )
+    except Exception:
+        rez = {}
+        rez["error"] = {"code": 2, "message": "неверные/невалидные параметры"}
+        rez["data"] = None
+        resp = jsonify(rez)
+        resp.status_code = 400
+        return resp
+    else:
+        return send_file(fname)
+
+@app.route("/api/weather", methods=["GET"])
 def weather():
     pass
 
 
-@app.route("/season", methods=["GET"])
+@app.route("/api/season", methods=["GET"])
 def season():
     pass
 
 
-@app.route("/timeclock", methods=["GET"])
+@app.route("/api/timeclock", methods=["GET"])
 def timeclock():
     user_time = int(request.args["time"]) # unix-дата в UTC
     user_tz = request.args["tz"] # сдвиг часового пояса "hhmm"
@@ -61,7 +128,7 @@ def timeclock():
     return resp 
 
 
-@app.route("/action", methods=["GET"])
+@app.route("/api/action", methods=["GET"])
 def action():
     pass
 
