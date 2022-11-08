@@ -1,11 +1,23 @@
-from flask import Flask, request, jsonify, send_file
-from yandex_music import Client
 from datetime import datetime as dt, timezone
 import time
 import json
 from operator import itemgetter
+from uuid import uuid4
+
+from flask import Flask, request, jsonify, send_file
+from yandex_music import Client
+from mariadb import connect, Error
+
+db = connect(
+    host="212.193.49.210",
+    user="mood_tracks",
+    password="u8u78y7au828",
+    database="mood_tracks"
+)
+db.autocommit = False
 
 app = Flask(__name__)
+
 ym = Client("y0_AgAAAAAmuxbHAAG8XgAAAADPAh7kUcBPun1yTdCmZ5c5KEfAUdVHzsg")
 ym.init()
 
@@ -29,7 +41,24 @@ def playlist(id=0):
         if request.method == "DELETE":
             pass
         else:
-            pass
+            sql = "SELECT `name` FROM `playlist` WHERE `playlist_id` = %s"
+            cur = db.cursor(dictionary=True)
+            cur.execute(sql, (id,))
+            name = cur.fetchone()['name']
+
+            sql = (
+                "SELECT  `ym_album_id` AS album_id, `ym_track_id` AS track_id, `artist`, `album`, "
+                "`title`, `duration`, `image_url` FROM `track` WHERE `playlist_id` = %s"
+            )
+            cur = db.cursor(dictionary=True)
+            cur.execute(sql, (id,))
+            rez = {
+                "err": None,
+                "data": {
+                    "name": name,
+                    "tracks": cur.fetchall()
+                }
+            }
     else:
         if request.method == "POST":
             key = request.json["key"]
@@ -40,6 +69,20 @@ def playlist(id=0):
 
             station = mood_map[key][data] 
             tracks = ym.rotor_station_tracks(station)
+
+            sql = (
+                "INSERT INTO `playlist` (`user_id`, `name`, `image_url`) "
+                "VALUES (%s, %s, %s) "
+            )
+            cur = db.cursor()
+            cur.execute(sql, (
+                "123e4567-e89b-12d3-a456-426655440000", 
+                "test", 
+                tracks['sequence'][0]['track']['cover_uri']
+            ))
+            db.commit() 
+            playlist_id = cur.lastrowid
+
             playlist = []
             for tr in tracks["sequence"]:
                 print(tr['track'])
@@ -50,21 +93,41 @@ def playlist(id=0):
                 title = tr['track']['title']
                 duration = int(tr['track']['duration_ms'] / 1000)
                 image_url = tr['track']['cover_uri']
-                playlist.append({
-                    "track_id": track_id,
-                    "album_id": album_id,
-                    "artist": artist,
-                    "album": album,
-                    "title": title,
-                    "duration": duration,
-                    "image_url": image_url
-                })
 
-            return {"tracks": playlist} # временно
-
+                sql = (
+                    "INSERT INTO `track` (`track_id`, `playlist_id`, `ym_album_id`, `ym_track_id`, "
+                    "`artist`, `album`, `title`, `duration`, `image_url`) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                )
+                params = (
+                    str(uuid4()),
+                    playlist_id,
+                    track_id,
+                    album_id,
+                    artist,
+                    album,
+                    title,
+                    duration,
+                    image_url
+                )
+                cur = db.cursor()
+                cur.execute(sql, params)
+                db.commit() 
+            print(playlist_id)
+            rez = {"err": None, "data": {"id": playlist_id}}
         else:
-            pass
-
+            sql = "SELECT `playlist_id` AS id, `name`, `image_url` FROM `playlist`"
+            cur = db.cursor(dictionary=True)
+            cur.execute(sql)
+            rez = {
+                "err": None,
+                "data": {
+                    "playlists": cur.fetchall()
+                }
+            }
+    resp = jsonify(rez)
+    resp.status_code = 200 if not rez["err"] else 400
+    return resp
 
 @app.route("/api/track/<int:album_id>/<int:track_id>")
 def track(album_id, track_id):
