@@ -3,10 +3,13 @@ import time
 import json
 from operator import itemgetter
 from uuid import uuid4
+import requests as rq
 
 from flask import Flask, request, jsonify, send_file
 from yandex_music import Client
 from mariadb import connect, Error
+import stun
+from pyowm import OWM
 
 db = connect(
     host="212.193.49.210",
@@ -20,6 +23,9 @@ app = Flask(__name__)
 
 ym = Client("y0_AgAAAAAmuxbHAAG8XgAAAADPAh7kUcBPun1yTdCmZ5c5KEfAUdVHzsg")
 ym.init()
+
+owm = OWM('c691d1db53c23015b7c0169398fdda81')
+weather_mgr = owm.weather_manager()
 
 TIMECLOCK = {
     "Night": [0, 6],
@@ -154,8 +160,25 @@ def track(album_id, track_id):
 
 @app.route("/api/weather", methods=["GET"])
 def weather():
-    pass
+    ip = request.remote_addr
+    if ip == "127.0.0.1":	
+        server_stun = stun.get_ip_info()
+        place = rq.get('http://api.sypexgeo.net/ymFwP/json/'+server_stun[1]).json()
+    else:
+        place = rq.get('http://api.sypexgeo.net/ymFwP/json/'+ip).json()
+    place_name = place["city"]["name_en"]
+    
+    observation = weather_mgr.weather_at_place(place_name)
 
+    rez = {
+        "error": None,
+        "data": {
+            "weather": observation.weather.detailed_status.capitalize()
+        }
+    }
+    resp = jsonify(rez)
+    resp.status_code = 200
+    return resp
 
 @app.route("/api/season", methods=["GET"])
 def season():
@@ -179,12 +202,23 @@ def timeclock():
         current_time_hours = dt.fromtimestamp(current_time_unix).hour
         for tn, tc in TIMECLOCK.items():
             if tc[0] <= current_time_hours < tc[1]:
-                rez["status"] = "OK!"
-                rez["timeclock"] = tn
+                rez = {
+                    "error": None,
+                    "data": {
+                        "timeclock": tn
+                    }
+                }
+                
                 resp = jsonify(rez)
                 resp.status_code = 200
     else:
-        rez["status"] = "Invalid time!"
+        rez = {
+            "error": {
+                "code": 2, 
+                "message": "неверные/невалидные параметры"
+            },
+            "data": None
+        }
         resp = jsonify(rez)
         resp.status_code = 400
 
