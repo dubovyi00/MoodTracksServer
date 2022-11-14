@@ -6,25 +6,30 @@ from uuid import uuid4
 import requests as rq
 
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS, cross_origin
 from yandex_music import Client
 from mariadb import connect, Error
 import stun
 from pyowm import OWM
 
+with open('cfg.json') as f:
+    cfg = json.loads(f.read())
+
 db = connect(
-    host="212.193.49.210",
-    user="mood_tracks",
-    password="u8u78y7au828",
-    database="mood_tracks"
+    host=cfg["db"]["host"],
+    user=cfg["db"]["user"],
+    password=cfg["db"]["password"],
+    database=cfg["db"]["database"],
 )
 db.autocommit = False
 
 app = Flask(__name__)
+CORS(app)
 
-ym = Client("y0_AgAAAAAmuxbHAAG8XgAAAADPAh7kUcBPun1yTdCmZ5c5KEfAUdVHzsg")
+ym = Client(cfg["ym_token"])
 ym.init()
 
-owm = OWM('c691d1db53c23015b7c0169398fdda81')
+owm = OWM(cfg["owm_token"])
 weather_mgr = owm.weather_manager()
 
 TIMECLOCK = {
@@ -229,5 +234,5 @@ def timeclock():
 def action():
     pass
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
